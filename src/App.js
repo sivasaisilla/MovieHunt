@@ -79,12 +79,15 @@ export default function App() {
 
   useEffect(
     function () {
+      const controller = new AbortController();
+
       async function fetchMovies() {
         try {
           setIsLoading(true);
           setError("");
           const res = await fetch(
-            `http://www.omdbapi.com/?apikey=${KEY}&s=${query}`
+            `http://www.omdbapi.com/?apikey=${KEY}&s=${query}`,
+            { signal: controller.signal }
           );
 
           if (!res.ok) throw new Error("Something went wrong");
@@ -94,9 +97,11 @@ export default function App() {
           if (data.Response === "False") throw new Error("Movie not Found");
 
           setMovies(data.Search);
+          setError("");
         } catch (err) {
-          console.error(err.message);
-          setError(err.message);
+          if (err.name !== "AbortError") {
+            setError(err.message);
+          } 
         } finally {
           setIsLoading(false);
         }
@@ -109,6 +114,10 @@ export default function App() {
       }
 
       fetchMovies();
+
+      return function () {
+        controller.abort();
+      };
     },
     [query]
   );
@@ -324,10 +333,18 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
     [selectedId]
   );
 
-  useEffect(function(){
-    if(!title) return;
-    document.title=`Movie | ${title}`
-  },[title])
+  useEffect(
+    function () {
+      if (!title) return;
+      document.title = `Movie | ${title}`;
+
+      return function () {
+        document.title = "usePopcorn";
+      };
+    },
+
+    [title]
+  );
 
   function handleAdd() {
     const newMovie = {
@@ -336,7 +353,7 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
       year,
       poster,
       imdbRating: Number(imdbRating),
-      runtime: Number(runtime.split("").at(0)),
+      runtime: Number(runtime.split(" ").at(0)),
       userRating,
     };
     onAddWatched(newMovie);
@@ -420,7 +437,7 @@ function WatchedSummary({ watched }) {
         </p>
         <p>
           <span>🌟</span>
-          <span>{avgUserRating.toFixed(2) }</span>
+          <span>{avgUserRating.toFixed(2)}</span>
         </p>
         <p>
           <span>⏳</span>
