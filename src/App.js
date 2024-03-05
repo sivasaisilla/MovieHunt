@@ -59,7 +59,7 @@ export default function App() {
   const [movies, setMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [selectedId, setSelectedId] = useState("tt1375666");
+  const [selectedId, setSelectedId] = useState("");
 
   function handleSelectMovie(id) {
     setSelectedId((selectedId) => (id === selectedId ? null : id));
@@ -100,8 +100,9 @@ export default function App() {
           setError("");
         } catch (err) {
           if (err.name !== "AbortError") {
+            console.log(err.message);
             setError(err.message);
-          } 
+          }
         } finally {
           setIsLoading(false);
         }
@@ -113,6 +114,7 @@ export default function App() {
         return;
       }
 
+      handleCloseMovie();
       fetchMovies();
 
       return function () {
@@ -344,6 +346,23 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
     },
 
     [title]
+  );
+
+  useEffect(
+    function () {
+      function callback(e) {
+        if (e.code === "Escape") {
+          onCloseMovie();
+        }
+      }
+
+      document.addEventListener("keydown", callback);
+
+      return function () {
+        document.removeEventListener("keydown", callback);
+      };
+    },
+    [onCloseMovie]
   );
 
   function handleAdd() {
